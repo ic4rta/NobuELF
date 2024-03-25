@@ -36,3 +36,4 @@ Tambien puedes filtrar por el nombre de una seccion usando ```--nombre```, pudes
 - Filtrar por la seccion .plt: ```nobu-elf --archivo=/ruta/elf --nombre=.plt```
 - Filtrar por la seccion .text e .init: ```nobu-elf --archivo=/ruta/elf --nombre=.text,.init``` 
 
+![](nobu-elf.png)
