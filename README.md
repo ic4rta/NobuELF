@@ -4,7 +4,7 @@
   <img src="https://static.wikia.nocookie.net/fategrandorder/images/4/41/Figure_069.png/revision/latest/scale-to-width-down/250?cb=20200331171136" alt="Imagen" width="320" height="260">
 </p
 
-**ELF parser que permite mostrar las secciones y filtrar por sus permisos**
+**ELF parser que permite mostrar los segmentos y filtrar por sus permisos**
 
 Hace uso de elf.h para manipular el archivo ELF
 
