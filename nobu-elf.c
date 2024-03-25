@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h> 
 #include <elf.h>
 
 void permisos(unsigned int flags) {
@@ -25,7 +26,7 @@ void imprimir_secciones(Elf64_Shdr *section_header, char *shstrtab) {
     permisos(section_header->sh_flags);
 }
 
-void procesar_secciones(FILE *archivo, Elf64_Ehdr *header, Elf64_Shdr *shstrtab_header, char *shstrtab, unsigned int permisos, char *nombres_seccion[], int num_nombres) {
+void procesar_secciones(FILE *archivo, Elf64_Ehdr *header, Elf64_Shdr *shstrtab_header, char *shstrtab, unsigned int permisos, char *nombres_secciones[], int contador_secciones) {
     fseek(archivo, header->e_shoff, SEEK_SET);
     Elf64_Shdr section_header;
     for (int i = 0; i < header->e_shnum; ++i) {
@@ -34,16 +35,16 @@ void procesar_secciones(FILE *archivo, Elf64_Ehdr *header, Elf64_Shdr *shstrtab_
             if ((permisos & SHF_ALLOC) != (section_header.sh_flags & SHF_ALLOC) || (permisos & SHF_WRITE) != (section_header.sh_flags & SHF_WRITE) || (permisos & SHF_EXECINSTR) != (section_header.sh_flags & SHF_EXECINSTR))
                 continue;
         }
-        int permiso_encontrado = 0;
-        if (num_nombres > 0 && nombres_seccion != NULL) {
-            for (int j = 0; j < num_nombres; j++) {
-                if (strcmp(shstrtab + section_header.sh_name, nombres_seccion[j]) == 0) {
-                    permiso_encontrado = 1;
+        bool permiso_encontrado = false;
+        if (contador_secciones > 0 && nombres_secciones != NULL) {
+            for (int j = 0; j < contador_secciones; j++) {
+                if (strcmp(shstrtab + section_header.sh_name, nombres_secciones[j]) == 0) {
+                    permiso_encontrado = true;
                     break;
                 }
             }
         } else {
-            permiso_encontrado = 1;
+            permiso_encontrado = true;
         }
         if (permiso_encontrado) {
             imprimir_secciones(&section_header, shstrtab);
@@ -51,7 +52,7 @@ void procesar_secciones(FILE *archivo, Elf64_Ehdr *header, Elf64_Shdr *shstrtab_
     }
 }
 
-void procesar_archivo(char *archivo, unsigned int permisos, char *nombres_seccion[], int num_nombres) {
+void procesar_archivo(char *archivo, unsigned int permisos, char *nombres_secciones[], int contador_secciones) {
     FILE *f = fopen(archivo, "r");
     if (f == NULL) {
         perror("Bleh~\nNo se pudo abrir el archivo");
@@ -73,15 +74,23 @@ void procesar_archivo(char *archivo, unsigned int permisos, char *nombres_seccio
     char shstrtab[shstrtab_header.sh_size];
     fseek(f, shstrtab_header.sh_offset, SEEK_SET);
     fread(shstrtab, 1, shstrtab_header.sh_size, f);
-    procesar_secciones(f, &header, &shstrtab_header, shstrtab, permisos, nombres_seccion, num_nombres);
+    procesar_secciones(f, &header, &shstrtab_header, shstrtab, permisos, nombres_secciones, contador_secciones);
     fclose(f);
 }
 
-void procesar_argumentos(int argc, char *argv[], char **archivo, unsigned int *permisos, char **nombres_seccion[], int *num_nombres) {
+void procesar_argumentos(int argc, char *argv[], char **archivo, unsigned int *permisos, char **nombres_secciones[], int *contador_secciones) {
+    bool permisos_argumento = false;
+    bool nombres_argumento = false;
+
     for (int i = 1; i < argc; i++) {
         if (strncmp(argv[i], "--archivo=", 10) == 0) {
             *archivo = argv[i] + 10;
         } else if (strncmp(argv[i], "--permisos=", 11) == 0) {
+            if (nombres_argumento) {
+                fprintf(stderr, "Bleh~\nNo se puede usar al mismo tiempo --permisos y --nombre\n");
+                exit(1);
+            }
+            permisos_argumento = true;
             char *perm_str = argv[i] + 11;
             for (int j = 0; perm_str[j] != '\0'; j++) {
                 switch (perm_str[j]) {
@@ -100,15 +109,20 @@ void procesar_argumentos(int argc, char *argv[], char **archivo, unsigned int *p
                 }
             }
         } else if (strncmp(argv[i], "--nombre=", 9) == 0) {
+            if (permisos_argumento) {
+                fprintf(stderr, "Bleh~\nNo se puede usar al mismo tiempo --nombre y --permisos\n");
+                exit(1);
+            }
+            nombres_argumento = true;
             char *token = strtok(argv[i] + 9, ",");
-            int count = 0;
+            int contador = 0;
             while (token != NULL) {
-                *nombres_seccion = realloc(*nombres_seccion, (count + 1) * sizeof(char*));
-                (*nombres_seccion)[count] = token;
-                count++;
+                *nombres_secciones = realloc(*nombres_secciones, (contador + 1) * sizeof(char*));
+                (*nombres_secciones)[contador] = token;
+                contador++;
                 token = strtok(NULL, ",");
             }
-            *num_nombres = count;
+            *contador_secciones = contador;
         }
     }
 }
@@ -116,18 +130,18 @@ void procesar_argumentos(int argc, char *argv[], char **archivo, unsigned int *p
 int main(int argc, char *argv[]) {
     char *archivo = NULL;
     unsigned int permisos = 0;
-    char **nombres_seccion = NULL;
-    int num_nombres = 0;
+    char **nombres_secciones = NULL;
+    int contador_secciones = 0;
     if (argc < 2) {
         fprintf(stderr, "Uso: %s --archivo=<ELF> [--permisos=<permisos>] [--nombre=<nombre_sección>,<nombre_sección>]\n", argv[0]);
         return 1;
     }
-    procesar_argumentos(argc, argv, &archivo, &permisos, &nombres_seccion, &num_nombres);
+    procesar_argumentos(argc, argv, &archivo, &permisos, &nombres_secciones, &contador_secciones);
     if (archivo == NULL) {
         fprintf(stderr, "Bleh~\nFalta el argumento --archivo.\n");
         return 1;
     }
-    procesar_archivo(archivo, permisos, nombres_seccion, num_nombres);
-    free(nombres_seccion);
+    procesar_archivo(archivo, permisos, nombres_secciones, contador_secciones);
+    free(nombres_secciones);
     return 0;
 }
