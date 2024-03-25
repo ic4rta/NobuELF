@@ -23,7 +23,7 @@ Puedes combinar multiples permisos en el argumento ```--permisos```, los permiso
 - w: escritura
 - x: ejecucion
 
-Esta opcion hace match exactamente con las secciones que tengan el permisos especificado, por lo que si pones ```--permisos=x``` te mostrara solo las secciones con permisos de ejecucion, mas no te mostrara las seccion que puedan tener permisos de ejecucion y otro permiso (la parte de ejemplos se explica mejor)
+Esta opcion hace match exactamente con las secciones que tengan el permisos especificado, por lo que si pones ```--permisos=x``` te mostrara solo las secciones con permisos de ejecucion, mas no te mostrara las secciones que tengan permisos de ejecucion y otro permiso (la parte de ejemplos se explica mejor)
 
 Tambien puedes filtrar por el nombre de una seccion usando ```--nombre```, pudes especificar mas de una seccion separandolas por una coma
   
