@@ -63,7 +63,7 @@ void procesar_archivo(char *archivo, unsigned int permisos, char *nombres_seccio
     }
 
     printf("Seccion             Direccion              Offset     Tamaño(bytes)      Permisos\n");
-    printf("-------------------------------------------------------------------------------------------------------------\n");
+    printf("----------------------------------------------------------------------------------\n");
 
     fseek(f, header.e_shoff + header.e_shstrndx * sizeof(Elf64_Shdr), SEEK_SET);
     Elf64_Shdr shstrtab_header;
