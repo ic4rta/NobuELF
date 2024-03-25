@@ -1,28 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 #include <elf.h>
 
 void permisos(unsigned int flags) {
-    printf("Permisos: ");
-    if (flags == 0) 
+    if (flags == 0)
         printf("Ninguno ");
     if (flags & SHF_ALLOC)
-        printf("Lectura ");
+        printf("r");
     if (flags & SHF_WRITE)
-        printf("Escritura ");
+        printf("w");
     if (flags & SHF_EXECINSTR)
-        printf("Ejecucion ");
+        printf("x");
     printf("\n");
 }
 
 void imprimir_secciones(Elf64_Shdr *section_header, char *shstrtab) {
-    printf("---------------------------------\n");
-    printf("Sección: %s\n", shstrtab + section_header->sh_name);
-    printf("Dirección: 0x%lx\n", section_header->sh_addr);
-    printf("Offset: 0x%lx\n", section_header->sh_offset);
-    printf("Tamaño: %lu bytes\n", section_header->sh_size);
+    printf("%-19s 0x%016lx     0x%-012lx  %-15lu  ", shstrtab + section_header->sh_name, section_header->sh_addr, section_header->sh_offset, section_header->sh_size);
     permisos(section_header->sh_flags);
 }
 
@@ -66,8 +61,10 @@ void procesar_archivo(char *archivo, unsigned int permisos, char *nombres_seccio
         fclose(f);
         exit(1);
     }
-    printf("---------------------------------\n");
-    printf("Entry Point: 0x%lx\n", header.e_entry);
+
+    printf("Seccion             Direccion              Offset     Tamaño(bytes)      Permisos\n");
+    printf("-------------------------------------------------------------------------------------------------------------\n");
+
     fseek(f, header.e_shoff + header.e_shstrndx * sizeof(Elf64_Shdr), SEEK_SET);
     Elf64_Shdr shstrtab_header;
     fread(&shstrtab_header, 1, sizeof(shstrtab_header), f);
@@ -117,7 +114,7 @@ void procesar_argumentos(int argc, char *argv[], char **archivo, unsigned int *p
             char *token = strtok(argv[i] + 9, ",");
             int contador = 0;
             while (token != NULL) {
-                *nombres_secciones = realloc(*nombres_secciones, (contador + 1) * sizeof(char*));
+                *nombres_secciones = realloc(*nombres_secciones, (contador + 1) * sizeof(char *));
                 (*nombres_secciones)[contador] = token;
                 contador++;
                 token = strtok(NULL, ",");
